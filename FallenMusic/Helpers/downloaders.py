@@ -21,8 +21,18 @@
 # SOFTWARE.
 
 import os
+import tempfile
 
 from yt_dlp import YoutubeDL
+
+COOKIES = os.getenv("COOKIES", None)
+
+cookies_file = None
+if COOKIES:
+    cookies_file = tempfile.NamedTemporaryFile(mode='w', suffix='.txt', delete=False)
+    cookies_file.write(COOKIES)
+    cookies_file.flush()
+    cookies_file = cookies_file.name
 
 ydl_opts = {
     "format": "bestaudio/best",
@@ -32,6 +42,7 @@ ydl_opts = {
     "quiet": True,
     "no_warnings": True,
     "prefer_ffmpeg": True,
+    "cookiefile": cookies_file,
     "postprocessors": [
         {
             "key": "FFmpegExtractAudio",
