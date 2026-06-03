@@ -23,17 +23,21 @@
 import os
 import yt_dlp
 
+cookies_file = "/app/cookies.txt" if os.path.exists("/app/cookies.txt") else None
+
 ydl_opts = {
     "format": "bestaudio/best",
     "outtmpl": "downloads/%(id)s.%(ext)s",
+    "geo_bypass": True,
+    "nocheckcertificate": True,
     "quiet": True,
     "no_warnings": True,
     "prefer_ffmpeg": True,
-    "geo_bypass": True,
-    "nocheckcertificate": True,
+    "cookiefile": cookies_file,
+    "source_address": "0.0.0.0",
     "extractor_args": {
         "youtube": {
-            "player_client": ["android_music"],
+            "player_client": ["android_music", "android", "web"],
         }
     },
     "postprocessors": [{
@@ -42,6 +46,7 @@ ydl_opts = {
         "preferredquality": "192",
     }],
 }
+
 
 def audio_dl(url: str) -> str:
     with yt_dlp.YoutubeDL(ydl_opts) as ydl:
