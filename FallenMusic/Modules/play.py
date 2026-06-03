@@ -34,7 +34,7 @@ from pyrogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 from pytgcalls import StreamType
 from pytgcalls.exceptions import NoActiveGroupCall, TelegramServerError, UnMuteNeeded
 from pytgcalls.types import AudioPiped, HighQualityAudio
-from youtube_search import YoutubeSearch
+from yt_dlp import YoutubeDL
 
 from config import DURATION_LIMIT
 from FallenMusic import (
@@ -57,6 +57,18 @@ from FallenMusic.Helpers.gets import get_file_name, get_url
 from FallenMusic.Helpers.inline import buttons
 from FallenMusic.Helpers.queue import put
 from FallenMusic.Helpers.thumbnails import gen_qthumb, gen_thumb
+
+
+def yt_search(query):
+    with YoutubeDL({"quiet": True, "no_warnings": True}) as ydl:
+        results = ydl.extract_info(f"ytsearch:{query}", download=False)
+        result = results["entries"][0]
+        url = result["webpage_url"]
+        title = result["title"]
+        videoid = result["id"]
+        dur = int(result["duration"])
+        duration = str(dur // 60) + ":" + str(dur % 60)
+        return url, title, videoid, duration, dur
 
 
 @app.on_message(
@@ -146,7 +158,6 @@ async def play(_, message: Message):
             raise DurationLimitError(
                 f"» sᴏʀʀʏ ʙᴀʙʏ, ᴛʀᴀᴄᴋ ʟᴏɴɢᴇʀ ᴛʜᴀɴ  {DURATION_LIMIT} ᴍɪɴᴜᴛᴇs ᴀʀᴇ ɴᴏᴛ ᴀʟʟᴏᴡᴇᴅ ᴛᴏ ᴘʟᴀʏ ᴏɴ {BOT_NAME}."
             )
-
         file_name = get_file_name(audio)
         title = file_name
         duration = round(audio.duration / 60)
@@ -158,16 +169,7 @@ async def play(_, message: Message):
 
     elif url:
         try:
-            results = YoutubeSearch(url, max_results=1).to_dict()
-            title = results[0]["title"]
-            duration = results[0]["duration"]
-            videoid = results[0]["id"]
-
-            secmul, dur, dur_arr = 1, 0, duration.split(":")
-            for i in range(len(dur_arr) - 1, -1, -1):
-                dur += int(dur_arr[i]) * secmul
-                secmul *= 60
-
+            url, title, videoid, duration, dur = yt_search(url)
         except Exception as e:
             return await fallen.edit_text(f"sᴏᴍᴇᴛʜɪɴɢ ᴡᴇɴᴛ ᴡʀᴏɴɢ\n\n**ᴇʀʀᴏʀ :** `{e}`")
 
@@ -179,26 +181,16 @@ async def play(_, message: Message):
     else:
         if len(message.command) < 2:
             return await fallen.edit_text("» ᴡʜᴀᴛ ᴅᴏ ʏᴏᴜ ᴡᴀɴɴᴀ ᴘʟᴀʏ ʙᴀʙʏ ?")
-        await fallen.edit_text("🔎")
+        await fallen.edit_text("» sᴇᴀʀᴄʜɪɴɢ...")
         query = message.text.split(None, 1)[1]
         try:
-            results = YoutubeSearch(query, max_results=1).to_dict()
-            url = f"https://youtube.com{results[0]['url_suffix']}"
-            title = results[0]["title"]
-            videoid = results[0]["id"]
-            duration = results[0]["duration"]
-
-            secmul, dur, dur_arr = 1, 0, duration.split(":")
-            for i in range(len(dur_arr) - 1, -1, -1):
-                dur += int(dur_arr[i]) * secmul
-                secmul *= 60
-
+            url, title, videoid, duration, dur = yt_search(query)
         except Exception as e:
             LOGGER.error(str(e))
-            return await fallen.edit("» ғᴀɪʟᴇᴅ ᴛᴏ ᴘʀᴏᴄᴇss ᴏ̨ᴜᴇʀʏ, ᴛʀʏ ᴘʟᴀʏɪɴɢ ᴀɢᴀɪɴ...")
+            return await fallen.edit_text("» ғᴀɪʟᴇᴅ ᴛᴏ ᴘʀᴏᴄᴇss ᴏ̨ᴜᴇʀʏ, ᴛʀʏ ᴘʟᴀʏɪɴɢ ᴀɢᴀɪɴ...")
 
         if (dur / 60) > DURATION_LIMIT:
-            return await fallen.edit(
+            return await fallen.edit_text(
                 f"» sᴏʀʀʏ ʙᴀʙʏ, ᴛʀᴀᴄᴋ ʟᴏɴɢᴇʀ ᴛʜᴀɴ  {DURATION_LIMIT} ᴍɪɴᴜᴛᴇs ᴀʀᴇ ɴᴏᴛ ᴀʟʟᴏᴡᴇᴅ ᴛᴏ ᴘʟᴀʏ ᴏɴ {BOT_NAME}."
             )
         file_path = audio_dl(url)
@@ -232,7 +224,6 @@ async def play(_, message: Message):
                 stream,
                 stream_type=StreamType().pulse_stream,
             )
-
         except NoActiveGroupCall:
             return await fallen.edit_text(
                 "**» ɴᴏ ᴀᴄᴛɪᴠᴇ ᴠɪᴅᴇᴏᴄʜᴀᴛ ғᴏᴜɴᴅ.**\n\nᴩʟᴇᴀsᴇ ᴍᴀᴋᴇ sᴜʀᴇ ʏᴏᴜ sᴛᴀʀᴛᴇᴅ ᴛʜᴇ ᴠɪᴅᴇᴏᴄʜᴀᴛ."
@@ -256,3 +247,4 @@ async def play(_, message: Message):
         )
 
     return await fallen.delete()
+
