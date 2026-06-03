@@ -181,7 +181,7 @@ async def play(_, message: Message):
     else:
         if len(message.command) < 2:
             return await fallen.edit_text("» ᴡʜᴀᴛ ᴅᴏ ʏᴏᴜ ᴡᴀɴɴᴀ ᴘʟᴀʏ ʙᴀʙʏ ?")
-        await fallen.edit_text("» sᴇᴀʀᴄʜɪɴɢ...")
+        await fallen.edit_text("🔎")
         query = message.text.split(None, 1)[1]
         try:
             url, title, videoid, duration, dur = yt_search(query)
